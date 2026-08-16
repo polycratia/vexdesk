@@ -1,0 +1,19 @@
+{
+  "id": "FIXTURE-0002",
+  "summary": "Fixture advisory: sprocket, fixed before the version in the SBOM",
+  "modified": "2026-08-01T00:00:00Z",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "Go",
+        "name": "github.com/example/sprocket"
+      },
+      "ranges": [
+        {
+          "type": "SEMVER",
+          "events": [{ "introduced": "0.1.0" }, { "fixed": "0.5.0" }]
+        }
+      ]
+    }
+  ]
+}

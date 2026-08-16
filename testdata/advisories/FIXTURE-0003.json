@@ -1,0 +1,19 @@
+{
+  "id": "FIXTURE-0003",
+  "summary": "Fixture advisory: PyPI ECOSYSTEM range, ordering not implemented",
+  "modified": "2026-08-01T00:00:00Z",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "PyPI",
+        "name": "example-fixture"
+      },
+      "ranges": [
+        {
+          "type": "ECOSYSTEM",
+          "events": [{ "introduced": "3.0" }, { "fixed": "3.2" }]
+        }
+      ]
+    }
+  ]
+}

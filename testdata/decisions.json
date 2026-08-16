@@ -1,0 +1,17 @@
+{
+  "decisions": [
+    {
+      "vulnerability": "FIXTURE-0001",
+      "product": "pkg:golang/github.com/example/widget@v1.2.3",
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "the affected parser is only reached from the admin importer, which this build does not include"
+    },
+    {
+      "vulnerability": "FIXTURE-0004",
+      "product": "pkg:npm/cogwheel@4.0.0",
+      "status": "affected",
+      "action_statement": "upgrade cogwheel to 4.1.0"
+    }
+  ]
+}

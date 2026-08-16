@@ -1,0 +1,20 @@
+{
+  "id": "FIXTURE-0001",
+  "aliases": ["CVE-FIXTURE-0001"],
+  "summary": "Fixture advisory: widget mishandles input below 1.3.0",
+  "modified": "2026-08-01T00:00:00Z",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "Go",
+        "name": "github.com/example/widget"
+      },
+      "ranges": [
+        {
+          "type": "SEMVER",
+          "events": [{ "introduced": "1.0.0" }, { "fixed": "1.3.0" }]
+        }
+      ]
+    }
+  ]
+}

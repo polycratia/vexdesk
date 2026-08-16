@@ -1,0 +1,14 @@
+{
+  "id": "FIXTURE-0004",
+  "summary": "Fixture advisory: cogwheel, explicit affected version list",
+  "modified": "2026-08-01T00:00:00Z",
+  "affected": [
+    {
+      "package": {
+        "ecosystem": "npm",
+        "name": "cogwheel"
+      },
+      "versions": ["3.9.0", "4.0.0"]
+    }
+  ]
+}

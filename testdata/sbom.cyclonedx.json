@@ -1,0 +1,59 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "version": 1,
+  "metadata": {
+    "component": {
+      "bom-ref": "root",
+      "type": "application",
+      "name": "example-service",
+      "version": "2.1.0"
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "c-widget",
+      "type": "library",
+      "name": "widget",
+      "version": "1.2.3",
+      "purl": "pkg:golang/github.com/example/widget@v1.2.3"
+    },
+    {
+      "bom-ref": "c-sprocket",
+      "type": "library",
+      "name": "sprocket",
+      "version": "0.9.0",
+      "purl": "pkg:golang/github.com/example/sprocket@v0.9.0"
+    },
+    {
+      "bom-ref": "c-cogwheel",
+      "type": "library",
+      "name": "cogwheel",
+      "version": "4.0.0",
+      "purl": "pkg:npm/cogwheel@4.0.0"
+    },
+    {
+      "bom-ref": "c-flask-fixture",
+      "type": "library",
+      "name": "Example_Fixture",
+      "version": "3.1.2",
+      "purl": "pkg:pypi/Example_Fixture@3.1.2"
+    },
+    {
+      "bom-ref": "c-vendored",
+      "type": "library",
+      "name": "vendored-blob",
+      "version": "unknown"
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "root",
+      "dependsOn": ["c-widget", "c-cogwheel", "c-vendored"]
+    },
+    {
+      "ref": "c-widget",
+      "dependsOn": ["c-sprocket"]
+    }
+  ]
+}
