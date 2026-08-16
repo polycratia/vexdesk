@@ -78,17 +78,35 @@ func run(args []string, out io.Writer) error {
 	}
 }
 
+// parseArgs parses flags that appear before, after or between the positional
+// arguments. Go's flag package stops at the first non-flag word, which would
+// silently ignore "vexdesk inventory sbom.json -json".
+func parseArgs(fs *flag.FlagSet, args []string) ([]string, error) {
+	var positional []string
+	for {
+		if err := fs.Parse(args); err != nil {
+			return nil, err
+		}
+		if fs.NArg() == 0 {
+			return positional, nil
+		}
+		positional = append(positional, fs.Arg(0))
+		args = fs.Args()[1:]
+	}
+}
+
 func cmdInventory(args []string, out io.Writer) error {
 	fs := flag.NewFlagSet("inventory", flag.ContinueOnError)
 	asJSON := fs.Bool("json", false, "print the inventory as JSON")
-	if err := fs.Parse(args); err != nil {
+	positional, err := parseArgs(fs, args)
+	if err != nil {
 		return err
 	}
-	if fs.NArg() != 1 {
+	if len(positional) != 1 {
 		return fmt.Errorf("inventory needs exactly one SBOM path")
 	}
 
-	inv, err := cyclonedx.ParseFile(fs.Arg(0))
+	inv, err := cyclonedx.ParseFile(positional[0])
 	if err != nil {
 		return err
 	}

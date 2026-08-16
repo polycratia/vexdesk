@@ -31,6 +31,18 @@ func TestInventoryCommand(t *testing.T) {
 	}
 }
 
+// Go's flag package stops parsing at the first non-flag word, so a flag written
+// after the path — the form everyone types — was being ignored.
+func TestFlagsAreAcceptedAfterThePositionalArgument(t *testing.T) {
+	var out bytes.Buffer
+	if err := run([]string{"inventory", sbom, "-json"}, &out); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(strings.TrimSpace(out.String()), "{") {
+		t.Errorf("-json after the path was ignored:\n%s", out.String())
+	}
+}
+
 // The end-to-end shape of the tool: an SBOM and an advisory feed go in, and the
 // findings that need a person come out — including the ones it cannot judge.
 func TestMatchCommandReportsAffectedAndUnknown(t *testing.T) {
