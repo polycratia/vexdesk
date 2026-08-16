@@ -10,6 +10,7 @@ package match
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/polycratia/vexdesk/internal/advisory/osv"
 	"github.com/polycratia/vexdesk/internal/inventory"
@@ -114,8 +115,13 @@ func Run(inv *inventory.Inventory, advisories []osv.Advisory) Result {
 
 // evaluate measures one version against one affected entry.
 func evaluate(version string, aff osv.Affected, eco ecosystem) (Status, string) {
-	// An explicit version list is exact: no ordering rules needed.
-	if slices.Contains(aff.Versions, version) {
+	// An explicit version list is exact: no ordering rules needed. The one
+	// normalisation applied is the leading "v" — Go components carry it and
+	// OSV lists mostly do not, and a string mismatch there would clear a
+	// version that is on the list.
+	if slices.ContainsFunc(aff.Versions, func(listed string) bool {
+		return strings.TrimPrefix(listed, "v") == strings.TrimPrefix(version, "v")
+	}) {
 		return Affected, "version is in the advisory's affected version list"
 	}
 
@@ -150,7 +156,9 @@ func evaluate(version string, aff osv.Affected, eco ecosystem) (Status, string) 
 	}
 
 	if len(unknown) > 0 {
-		return Unknown, unknown[0]
+		// Every reason survives: the person clearing this finding needs the
+		// whole list, not the first item of it.
+		return Unknown, strings.Join(unknown, "; ")
 	}
 	if len(aff.Ranges) == 0 && len(aff.Versions) > 0 {
 		return NotAffected, "version is not in the advisory's affected version list"

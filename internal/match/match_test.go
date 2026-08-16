@@ -172,6 +172,54 @@ func TestRunMatchesExplicitVersionLists(t *testing.T) {
 	}
 }
 
+// Go components carry a leading "v" and OSV version lists mostly do not. An
+// exact string comparison would clear a version that is on the list — a false
+// not_affected, the worst answer this tool can give.
+func TestExplicitVersionListsIgnoreTheLeadingV(t *testing.T) {
+	advisories := []osv.Advisory{
+		advisory("A-1", "Go", "github.com/example/widget", nil, []string{"1.2.3"}),
+	}
+	inv := &inventory.Inventory{Components: []inventory.Component{
+		comp("widget", "v1.2.3", "pkg:golang/github.com/example/widget@v1.2.3")}}
+
+	if got := Run(inv, advisories).Findings[0].Status; got != Affected {
+		t.Errorf("v1.2.3 against list [1.2.3]: status = %s, want affected", got)
+	}
+
+	// And the mirror image: a "v" in the advisory's own list.
+	advisories = []osv.Advisory{advisory("A-2", "npm", "cog", nil, []string{"v4.0.0"})}
+	inv = &inventory.Inventory{Components: []inventory.Component{comp("cog", "4.0.0", "pkg:npm/cog@4.0.0")}}
+	if got := Run(inv, advisories).Findings[0].Status; got != Affected {
+		t.Errorf("4.0.0 against list [v4.0.0]: status = %s, want affected", got)
+	}
+}
+
+// Two ranges that cannot be compared give two reasons, and the person clearing
+// the finding needs both.
+func TestUnknownReasonsAreAllReported(t *testing.T) {
+	adv := osv.Advisory{
+		ID: "A-1",
+		Affected: []osv.Affected{{
+			Package: osv.Package{Ecosystem: "npm", Name: "cog"},
+			Ranges: []osv.Range{
+				{Type: osv.RangeGit, Events: []osv.Event{{Introduced: "abc123"}}},
+				{Type: "EXOTIC", Events: []osv.Event{{Introduced: "1"}}},
+			},
+		}},
+	}
+	inv := &inventory.Inventory{Components: []inventory.Component{comp("cog", "1.0.0", "pkg:npm/cog@1.0.0")}}
+
+	finding := Run(inv, []osv.Advisory{adv}).Findings[0]
+	if finding.Status != Unknown {
+		t.Fatalf("status = %s, want unknown", finding.Status)
+	}
+	for _, want := range []string{"GIT range", "EXOTIC"} {
+		if !strings.Contains(finding.Reason, want) {
+			t.Errorf("reason %q lost the %q part", finding.Reason, want)
+		}
+	}
+}
+
 func TestRunNormalizesPyPINames(t *testing.T) {
 	inv := &inventory.Inventory{Components: []inventory.Component{
 		comp("Example_Fixture", "3.1.2", "pkg:pypi/Example_Fixture@3.1.2")}}
