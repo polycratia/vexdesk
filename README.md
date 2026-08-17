@@ -131,3 +131,7 @@ make demo   # run the whole path over the fixtures in testdata/
 ## License
 
 MIT
+
+---
+
+Maintained by [polycratia](https://polycratia.com).
