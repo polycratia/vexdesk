@@ -69,7 +69,8 @@ what you concluded in a decisions file:
       "vulnerability": "FIXTURE-0001",
       "product": "pkg:golang/github.com/example/widget@v1.2.3",
       "status": "not_affected",
-      "justification": "vulnerable_code_not_in_execute_path"
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "the affected parser is only reached from the admin importer, which this build does not include"
     }
   ]
 }
@@ -100,8 +101,14 @@ produces a confident wrong answer.
 
 vexdesk enforces the OpenVEX rules rather than emitting whatever it is given:
 
-- `not_affected` requires either one of the five justification codes or a
-  written impact statement — a status with no reason is unusable to its reader;
+- `not_affected` requires one of the five justification codes
+  (`component_not_present`, `vulnerable_code_not_present`,
+  `vulnerable_code_not_in_execute_path`,
+  `vulnerable_code_cannot_be_controlled_by_adversary`,
+  `inline_mitigations_already_exist`). A written `impact_statement` is welcome
+  alongside the code and the document refuses to build without one — a reviewer
+  will ask why, and only the code answers that in a form they can compare
+  against every other statement;
 - `affected` requires an action statement: what should the user do;
 - the document id is derived from the statements, so an unchanged set of
   decisions rebuilds to the same id instead of looking newly issued on every

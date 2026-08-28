@@ -145,13 +145,18 @@ func (s Statement) Validate() error {
 
 	switch s.Status {
 	case NotAffected:
-		// The spec requires one of the two: a justification code, or a written
-		// impact statement. Either way the reader gets a reason.
-		if s.Justification == "" && strings.TrimSpace(s.ImpactStatement) == "" {
+		// One of the closed set of codes, always. Prose explains a decision to
+		// the person reading this document; only the code lets a reviewer, a
+		// diff or another tool compare it against every other not_affected.
+		// An impact statement is welcome alongside it, never instead of it.
+		switch {
+		case s.Justification == "" && strings.TrimSpace(s.ImpactStatement) != "":
 			errs = append(errs, fmt.Errorf(
-				"not_affected requires a justification %v or an impact_statement", justifications))
-		}
-		if s.Justification != "" && !slices.Contains(justifications, s.Justification) {
+				"not_affected has an impact_statement but no justification: prose does not stand in for one of %v",
+				justifications))
+		case s.Justification == "":
+			errs = append(errs, fmt.Errorf("not_affected requires a justification, one of %v", justifications))
+		case !slices.Contains(justifications, s.Justification):
 			errs = append(errs, fmt.Errorf("justification %q is not one of %v", s.Justification, justifications))
 		}
 	case Affected:

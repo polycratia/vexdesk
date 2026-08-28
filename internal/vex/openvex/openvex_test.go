@@ -75,15 +75,38 @@ func TestDocumentIDIsDerivedFromStatements(t *testing.T) {
 	}
 }
 
-func TestNotAffectedNeedsAReason(t *testing.T) {
-	if _, err := New("polycratia", time.Now(), "", []Statement{statement(NotAffected)}); err == nil {
-		t.Fatal("not_affected without justification or impact statement was accepted")
+func TestNotAffectedNeedsAJustificationCode(t *testing.T) {
+	err := func(s Statement) error {
+		_, err := New("polycratia", time.Now(), "", []Statement{s})
+		return err
 	}
 
-	withImpact := statement(NotAffected)
-	withImpact.ImpactStatement = "the parser is never fed untrusted input in this product"
-	if _, err := New("polycratia", time.Now(), "", []Statement{withImpact}); err != nil {
-		t.Errorf("not_affected with an impact statement was rejected: %v", err)
+	if err(statement(NotAffected)) == nil {
+		t.Fatal("not_affected without a justification was accepted")
+	}
+
+	// Prose reads well and compares badly: a reviewer cannot check it against
+	// the other not_affected statements, so it does not stand in for a code.
+	impactOnly := statement(NotAffected)
+	impactOnly.ImpactStatement = "the parser is never fed untrusted input in this product"
+	got := err(impactOnly)
+	if got == nil {
+		t.Fatal("not_affected with only an impact statement was accepted")
+	}
+	if !strings.Contains(got.Error(), string(VulnerableCodeNotPresent)) {
+		t.Errorf("error should list the allowed codes, got: %v", got)
+	}
+
+	withCode := statement(NotAffected)
+	withCode.Justification = VulnerableCodeNotInExecutePath
+	if got := err(withCode); got != nil {
+		t.Errorf("not_affected with a justification was rejected: %v", got)
+	}
+
+	withBoth := withCode
+	withBoth.ImpactStatement = "only the admin importer reaches it, and this build omits it"
+	if got := err(withBoth); got != nil {
+		t.Errorf("a justification with supporting prose was rejected: %v", got)
 	}
 }
 
@@ -137,5 +160,16 @@ func TestDocumentRejectsIncompleteInput(t *testing.T) {
 		if _, err := New(c.author, time.Now(), "", c.statements); err == nil {
 			t.Errorf("%s: document was accepted, want an error", name)
 		}
+	}
+}
+
+func TestJustificationsListIsTheClosedSet(t *testing.T) {
+	got := Justifications()
+	if len(got) != 5 {
+		t.Fatalf("got %d justifications, want the five the spec defines", len(got))
+	}
+	got[0] = "mutated"
+	if Justifications()[0] != ComponentNotPresent {
+		t.Error("Justifications() hands out the package's own slice")
 	}
 }
