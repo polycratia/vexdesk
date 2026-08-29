@@ -10,6 +10,7 @@ package match
 import (
 	"fmt"
 	"slices"
+	"sort"
 	"strings"
 
 	"github.com/polycratia/vexdesk/internal/advisory/osv"
@@ -172,8 +173,39 @@ func evaluate(version string, aff osv.Affected, eco ecosystem) (Status, string) 
 // inSemverRange walks the range's events in order, per the OSV schema: an
 // "introduced" event opens the interval, "fixed" and "last_affected" close it.
 func inSemverRange(version string, r osv.Range) (bool, error) {
+	// OSV does not promise that events arrive sorted, and walking them in
+	// file order makes the verdict depend on serialisation: a shuffled
+	// multi-interval range can flip an affected version to a confident
+	// not_affected — the exact kind of wrong answer this tool exists to
+	// prevent. Sort by the event's version first; "introduced":"0" sorts
+	// before everything, and at equal versions a closing event (fixed /
+	// last_affected) sorts before the introduced that reopens the range.
+	events := make([]osv.Event, len(r.Events))
+	copy(events, r.Events)
+	var sortErr error
+	sort.SliceStable(events, func(i, j int) bool {
+		vi, vj := eventVersion(events[i]), eventVersion(events[j])
+		if vi == "0" || vj == "0" {
+			return vi == "0" && vj != "0"
+		}
+		c, err := compareSemver(vi, vj)
+		if err != nil {
+			if sortErr == nil {
+				sortErr = err
+			}
+			return false
+		}
+		if c != 0 {
+			return c < 0
+		}
+		return events[i].Introduced == "" && events[j].Introduced != ""
+	})
+	if sortErr != nil {
+		return false, sortErr
+	}
+
 	affected := false
-	for _, e := range r.Events {
+	for _, e := range events {
 		switch {
 		case e.Introduced != "":
 			if e.Introduced == "0" {
@@ -206,4 +238,18 @@ func inSemverRange(version string, r osv.Range) (bool, error) {
 		}
 	}
 	return affected, nil
+}
+
+// eventVersion returns the version an OSV event talks about, whichever
+// field carries it.
+func eventVersion(e osv.Event) string {
+	switch {
+	case e.Introduced != "":
+		return e.Introduced
+	case e.Fixed != "":
+		return e.Fixed
+	case e.LastAffected != "":
+		return e.LastAffected
+	}
+	return e.Limit
 }
