@@ -12,6 +12,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"slices"
 	"strings"
 	"time"
@@ -103,6 +104,34 @@ func New(author string, at time.Time, tooling string, statements []Statement) (*
 	doc.ID = deriveID(statements)
 	if err := doc.Validate(); err != nil {
 		return nil, err
+	}
+	return doc, nil
+}
+
+// Parse reads a document that has already been issued. It does not validate: a
+// document published last quarter is a fact, and refusing to read it would hide
+// exactly the statements someone needs to see in order to fix them. Writing
+// stays strict; reading does not.
+func Parse(data []byte) (*Document, error) {
+	var doc Document
+	if err := json.Unmarshal(data, &doc); err != nil {
+		return nil, fmt.Errorf("openvex: %w", err)
+	}
+	if doc.Context == "" && len(doc.Statements) == 0 {
+		return nil, errors.New("openvex: not a VEX document: it has neither @context nor statements")
+	}
+	return &doc, nil
+}
+
+// ParseFile reads an OpenVEX document from disk.
+func ParseFile(path string) (*Document, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	doc, err := Parse(data)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", path, err)
 	}
 	return doc, nil
 }
