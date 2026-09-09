@@ -81,6 +81,39 @@ vexdesk vex -sbom sbom.cyclonedx.json -advisories ./advisories \
             -decisions decisions.json -author "Example Ltd" -o vex.json
 ```
 
+## What changed since the last release
+
+The question a customer asks on receiving a new document is not what it
+contains but what is different since the one before it:
+
+```console
+$ vexdesk diff released/vex-2.0.0.json vex.json
+3 change(s), 4 claim(s) unchanged
+
+CHANGE       ADVISORY      PRODUCT                                      DETAIL
+new          FIXTURE-0005  pkg:npm/cogwheel@4.1.0                       under_investigation
+restated     FIXTURE-0004  pkg:npm/cogwheel@4.1.0                       affected → fixed
+rejustified  FIXTURE-0001  pkg:golang/github.com/example/widget@v1.2.3  justification vulnerable_code_not_in_execute_path → component_not_present
+
+Needs attention (1):
+  FIXTURE-0005  pkg:npm/cogwheel@4.1.0  under_investigation
+```
+
+The comparison is made claim by claim — one vulnerability against one product —
+not line by line. Reordered statements are a serialisation detail and are not
+reported; a changed justification on a `not_affected` claim is reported on its
+own, because a conclusion that held for a new reason is exactly what a reviewer
+has to re-read. An upgraded dependency reads as one move rather than a finding
+vanishing and an unrelated one arriving, and only when the pairing is
+unambiguous: two candidates on either side are reported as they stand instead of
+guessed at.
+
+`diff` exits 1 when the current document opens work — a claim that is `affected`
+or `under_investigation` now and was not before — so a release can be gated on
+it. Documents already issued are read leniently, including ones that break the
+rules this tool enforces on write: refusing them would hide the statements
+someone needs to fix.
+
 ## Saying "unknown" out loud
 
 Every part of the tool is built around one rule: **what cannot be determined is
@@ -125,7 +158,7 @@ built yet, and the tool says so rather than pretending otherwise.
 | Advisories | OSV records from a directory tree |
 | Version ranges | `SEMVER`; `ECOSYSTEM` for Go, npm and crates.io; explicit version lists |
 | Ecosystems | Go, npm, crates.io, PyPI, Maven, RubyGems, NuGet, Packagist, Hex, Pub |
-| Output | OpenVEX v0.2.0 |
+| Output | OpenVEX v0.2.0, and a claim-by-claim diff of two of them |
 | Not yet | SPDX input, CSAF output, reachability analysis, KEV/EPSS feeds, the reporting clock |
 
 ## Development

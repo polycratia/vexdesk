@@ -19,6 +19,7 @@ import (
 	"github.com/polycratia/vexdesk/internal/sbom/cyclonedx"
 	"github.com/polycratia/vexdesk/internal/vex"
 	"github.com/polycratia/vexdesk/internal/vex/openvex"
+	"github.com/polycratia/vexdesk/internal/vex/vexdiff"
 )
 
 const usage = `vexdesk — from a bill of materials to a VEX document.
@@ -35,6 +36,11 @@ Usage:
              [-decisions <file>] [-o <file>]
         Build an OpenVEX document from the findings and recorded decisions.
         Findings without a decision come out as under_investigation.
+
+  vexdesk diff <previous.json> <current.json> [-json]
+        Compare two OpenVEX documents claim by claim: what turned up, what
+        went away, and which judgements were rewritten. Exits 1 when the
+        current document opens work that was not open before.
 
 vexdesk does not generate SBOMs and does not scan for vulnerabilities; it reads
 what those tools produce.
@@ -70,6 +76,8 @@ func run(args []string, out io.Writer) error {
 		return cmdMatch(args[1:], out)
 	case "vex":
 		return cmdVex(args[1:], out)
+	case "diff":
+		return cmdDiff(args[1:], out)
 	case "help", "-h", "--help":
 		fmt.Fprint(out, usage)
 		return nil
@@ -234,6 +242,67 @@ func cmdVex(args []string, out io.Writer) error {
 		return err
 	}
 	return os.WriteFile(*outPath, body, 0o644)
+}
+
+func cmdDiff(args []string, out io.Writer) error {
+	fs := flag.NewFlagSet("diff", flag.ContinueOnError)
+	asJSON := fs.Bool("json", false, "print the comparison as JSON")
+	exitZero := fs.Bool("exit-zero", false, "always exit 0, even when the current document opens work")
+	positional, err := parseArgs(fs, args)
+	if err != nil {
+		return err
+	}
+	if len(positional) != 2 {
+		return fmt.Errorf("diff needs two VEX documents: the previous one and the current one")
+	}
+
+	before, err := openvex.ParseFile(positional[0])
+	if err != nil {
+		return err
+	}
+	after, err := openvex.ParseFile(positional[1])
+	if err != nil {
+		return err
+	}
+
+	d := vexdiff.Compare(before, after)
+	if *asJSON {
+		if err := writeJSON(out, d); err != nil {
+			return err
+		}
+	} else {
+		printDiff(out, d)
+	}
+	if len(d.NeedsAttention()) > 0 && !*exitZero {
+		return exitCode(1)
+	}
+	return nil
+}
+
+func printDiff(out io.Writer, d vexdiff.Diff) {
+	fmt.Fprintf(out, "%d change(s), %d claim(s) unchanged\n\n", len(d.Changes), d.Unchanged)
+	if len(d.Changes) == 0 {
+		fmt.Fprintln(out, "Both documents make the same claims.")
+		return
+	}
+
+	tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
+	fmt.Fprintln(tw, "CHANGE\tADVISORY\tPRODUCT\tDETAIL")
+	for _, c := range d.Changes {
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", c.Kind, c.Vulnerability(), c.Product(), c.Detail)
+	}
+	tw.Flush()
+
+	attention := d.NeedsAttention()
+	if len(attention) == 0 {
+		return
+	}
+	fmt.Fprintf(out, "\nNeeds attention (%d):\n", len(attention))
+	twa := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
+	for _, c := range attention {
+		fmt.Fprintf(twa, "  %s\t%s\t%s\n", c.Vulnerability(), c.Product(), c.Detail)
+	}
+	twa.Flush()
 }
 
 func analyse(sbomPath, advDir string) (match.Result, error) {

@@ -155,6 +155,107 @@ func TestVexCommandRefusesAnAnonymousDocument(t *testing.T) {
 	}
 }
 
+func writeDoc(t *testing.T, dir, name, body string) string {
+	t.Helper()
+	path := filepath.Join(dir, name)
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+const releasedDoc = `{"@context":"https://openvex.dev/ns/v0.2.0","author":"polycratia","statements":[
+  {"vulnerability":{"name":"FIXTURE-0001"},"products":[{"@id":"pkg:npm/cogwheel@4.0.0"}],
+   "status":"not_affected","justification":"vulnerable_code_not_in_execute_path"},
+  {"vulnerability":{"name":"FIXTURE-0004"},"products":[{"@id":"pkg:npm/cogwheel@4.0.0"}],
+   "status":"affected","action_statement":"upgrade cogwheel to 4.1.0"}]}`
+
+// The question the customer asks about a new release: what turned up, what went
+// away, and which judgement was rewritten.
+func TestDiffCommandReportsWhatChanged(t *testing.T) {
+	dir := t.TempDir()
+	before := writeDoc(t, dir, "before.json", releasedDoc)
+	after := writeDoc(t, dir, "after.json", `{"@context":"https://openvex.dev/ns/v0.2.0","author":"polycratia","statements":[
+  {"vulnerability":{"name":"FIXTURE-0001"},"products":[{"@id":"pkg:npm/cogwheel@4.0.0"}],
+   "status":"not_affected","justification":"component_not_present"},
+  {"vulnerability":{"name":"FIXTURE-0004"},"products":[{"@id":"pkg:npm/cogwheel@4.0.0"}],
+   "status":"fixed"},
+  {"vulnerability":{"name":"FIXTURE-0005"},"products":[{"@id":"pkg:npm/cogwheel@4.0.0"}],
+   "status":"under_investigation"}]}`)
+
+	var out bytes.Buffer
+	err := run([]string{"diff", before, after, "-json"}, &out)
+
+	var code exitCode
+	if !errors.As(err, &code) || int(code) != 1 {
+		t.Fatalf("err = %v, want exit code 1: the current document opens a finding", err)
+	}
+
+	type claim struct {
+		Vulnerability string `json:"vulnerability"`
+		Product       string `json:"product"`
+	}
+	var d struct {
+		Changes []struct {
+			Kind   string `json:"kind"`
+			Before *claim `json:"before"`
+			After  *claim `json:"after"`
+			Detail string `json:"detail"`
+		} `json:"changes"`
+		Unchanged int `json:"unchanged"`
+	}
+	if err := json.Unmarshal(out.Bytes(), &d); err != nil {
+		t.Fatalf("output is not valid JSON: %v\n%s", err, out.String())
+	}
+
+	got := map[string]string{}
+	for _, c := range d.Changes {
+		name := ""
+		if c.After != nil {
+			name = c.After.Vulnerability
+		} else if c.Before != nil {
+			name = c.Before.Vulnerability
+		}
+		got[name] = c.Kind
+	}
+	want := map[string]string{
+		"FIXTURE-0005": "new",
+		"FIXTURE-0004": "restated",
+		"FIXTURE-0001": "rejustified",
+	}
+	for id, kind := range want {
+		if got[id] != kind {
+			t.Errorf("%s = %q, want %q", id, got[id], kind)
+		}
+	}
+	if d.Unchanged != 0 {
+		t.Errorf("unchanged = %d, want 0: every claim moved", d.Unchanged)
+	}
+}
+
+// A release that changed nothing must not stop a pipeline, and must say so in
+// words rather than printing an empty table.
+func TestDiffCommandOfTwoIdenticalDocuments(t *testing.T) {
+	dir := t.TempDir()
+	before := writeDoc(t, dir, "before.json", releasedDoc)
+	after := writeDoc(t, dir, "after.json", releasedDoc)
+
+	var out bytes.Buffer
+	if err := run([]string{"diff", before, after}, &out); err != nil {
+		t.Fatalf("err = %v, want a clean exit", err)
+	}
+	if !strings.Contains(out.String(), "same claims") {
+		t.Errorf("output = %q, want it to say the documents agree", out.String())
+	}
+}
+
+func TestDiffCommandNeedsTwoDocuments(t *testing.T) {
+	var out bytes.Buffer
+	if err := run([]string{"diff", "only-one.json"}, &out); err == nil {
+		t.Error("diff with a single document was accepted")
+	}
+}
+
 func TestUnknownCommand(t *testing.T) {
 	var out bytes.Buffer
 	if err := run([]string{"frobnicate"}, &out); err == nil {
