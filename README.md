@@ -164,9 +164,16 @@ built yet, and the tool says so rather than pretending otherwise.
 ## Development
 
 ```bash
-make test   # go vet + go test ./...
-make demo   # run the whole path over the fixtures in testdata/
+make test    # go vet + go test ./...
+make demo    # run the whole path over the fixtures in testdata/
+make golden  # re-record the documents in testdata/golden/
 ```
+
+`testdata/scanners/` holds CycloneDX in the shapes syft and trivy actually
+write — bom-refs carrying package-id qualifiers, operating-system components,
+purl types no advisory ecosystem covers — and `testdata/golden/` holds the
+documents they produce, compared byte for byte. Format drift then shows up as a
+diff in review rather than as a surprise in someone else's parser.
 
 ## License
 

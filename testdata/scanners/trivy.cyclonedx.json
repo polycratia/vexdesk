@@ -1,0 +1,101 @@
+{
+  "$schema": "http://cyclonedx.org/schema/bom-1.6.schema.json",
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.6",
+  "serialNumber": "urn:uuid:b7d4e0a2-31c8-4a6f-9f10-2d8b5e4c7a91",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-09-01T06:19:03Z",
+    "tools": {
+      "components": [
+        {
+          "type": "application",
+          "group": "aquasecurity",
+          "name": "trivy",
+          "version": "0.58.1"
+        }
+      ]
+    },
+    "component": {
+      "bom-ref": "pkg:oci/example-service@sha256%3Aa1b2c3d4e5f60718293a4b5c6d7e8f90",
+      "type": "container",
+      "name": "example-service:2.1.0",
+      "purl": "pkg:oci/example-service@sha256%3Aa1b2c3d4e5f60718293a4b5c6d7e8f90?repository_url=registry.example.com%2Fexample-service",
+      "properties": [
+        { "name": "aquasecurity:trivy:SchemaVersion", "value": "2" },
+        { "name": "aquasecurity:trivy:ImageID", "value": "sha256:a1b2c3d4e5f6" }
+      ]
+    }
+  },
+  "components": [
+    {
+      "bom-ref": "3f6f2d1a-0e6b-4a9f-9a67-6c1f6a2e77aa",
+      "type": "operating-system",
+      "name": "debian",
+      "version": "12.8",
+      "properties": [
+        { "name": "aquasecurity:trivy:Type", "value": "debian" },
+        { "name": "aquasecurity:trivy:Class", "value": "os-pkgs" }
+      ]
+    },
+    {
+      "bom-ref": "7a2f1c94-2b0a-4f0e-8e6a-1d3f8c0b5e21",
+      "type": "library",
+      "name": "libssl3",
+      "version": "3.0.15-1~deb12u1",
+      "purl": "pkg:deb/debian/libssl3@3.0.15-1~deb12u1?arch=amd64&distro=debian-12.8",
+      "properties": [
+        { "name": "aquasecurity:trivy:PkgID", "value": "libssl3@3.0.15-1~deb12u1" },
+        { "name": "aquasecurity:trivy:PkgType", "value": "debian" },
+        { "name": "aquasecurity:trivy:SrcName", "value": "openssl" }
+      ]
+    },
+    {
+      "bom-ref": "b91c2e57-0f4d-4e3a-9a81-5c2a7d4f1e60",
+      "type": "library",
+      "name": "github.com/example/widget",
+      "version": "v1.2.3",
+      "purl": "pkg:golang/github.com/example/widget@v1.2.3",
+      "properties": [
+        { "name": "aquasecurity:trivy:PkgType", "value": "gobinary" },
+        { "name": "aquasecurity:trivy:FilePath", "value": "usr/local/bin/example-service" }
+      ]
+    },
+    {
+      "bom-ref": "c2d3e4f5-1a2b-4c3d-8e9f-0a1b2c3d4e5f",
+      "type": "library",
+      "name": "cogwheel",
+      "version": "4.0.0",
+      "purl": "pkg:npm/cogwheel@4.0.0",
+      "properties": [
+        { "name": "aquasecurity:trivy:PkgType", "value": "node-pkg" },
+        { "name": "aquasecurity:trivy:FilePath", "value": "app/node_modules/cogwheel/package.json" }
+      ]
+    },
+    {
+      "bom-ref": "d4e5f607-1829-4a3b-9c0d-1e2f3a4b5c6d",
+      "type": "library",
+      "name": "rack",
+      "version": "2.2.8",
+      "purl": "pkg:gem/rack@2.2.8",
+      "properties": [
+        { "name": "aquasecurity:trivy:PkgType", "value": "gemspec" }
+      ]
+    }
+  ],
+  "dependencies": [
+    {
+      "ref": "pkg:oci/example-service@sha256%3Aa1b2c3d4e5f60718293a4b5c6d7e8f90",
+      "dependsOn": [
+        "3f6f2d1a-0e6b-4a9f-9a67-6c1f6a2e77aa",
+        "b91c2e57-0f4d-4e3a-9a81-5c2a7d4f1e60",
+        "c2d3e4f5-1a2b-4c3d-8e9f-0a1b2c3d4e5f",
+        "d4e5f607-1829-4a3b-9c0d-1e2f3a4b5c6d"
+      ]
+    },
+    {
+      "ref": "3f6f2d1a-0e6b-4a9f-9a67-6c1f6a2e77aa",
+      "dependsOn": ["7a2f1c94-2b0a-4f0e-8e6a-1d3f8c0b5e21"]
+    }
+  ]
+}
