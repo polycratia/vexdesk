@@ -81,6 +81,11 @@ vexdesk vex -sbom sbom.cyclonedx.json -advisories ./advisories \
             -decisions decisions.json -author "Example Ltd" -o vex.json
 ```
 
+The whole path — from the SBOM a scanner writes to a signed document published
+beside a release, what the tool decides, what a person must decide, and where
+each command lands in a release script — is written out in
+[docs/cra-workflow.md](docs/cra-workflow.md).
+
 ## What changed since the last release
 
 The question a customer asks on receiving a new document is not what it
