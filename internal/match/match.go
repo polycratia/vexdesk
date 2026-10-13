@@ -30,7 +30,10 @@ const (
 	Unknown Status = "unknown"
 )
 
-// Finding is one component measured against one advisory.
+// Finding is one component measured against one advisory. There is exactly one
+// per (component, advisory) pair, however many affected entries the advisory
+// makes about the component's package: one advisory naming one component is
+// one claim, and a claim has one verdict.
 type Finding struct {
 	Component inventory.Component `json:"component"`
 	Advisory  string              `json:"advisory"`
@@ -95,23 +98,70 @@ func Run(inv *inventory.Inventory, advisories []osv.Advisory) Result {
 
 		res.Checked++
 		for _, a := range advisories {
-			for _, aff := range a.Affected {
-				if !samePackage(aff.Package.Ecosystem, aff.Package.Name, eco, name) {
-					continue
-				}
-				status, reason := evaluate(version, aff, eco)
-				res.Findings = append(res.Findings, Finding{
-					Component: c,
-					Advisory:  a.ID,
-					Aliases:   a.Aliases,
-					Summary:   a.Summary,
-					Status:    status,
-					Reason:    reason,
-				})
+			status, reason, stated := fold(version, a, eco, name)
+			if !stated {
+				continue
 			}
+			res.Findings = append(res.Findings, Finding{
+				Component: c,
+				Advisory:  a.ID,
+				Aliases:   a.Aliases,
+				Summary:   a.Summary,
+				Status:    status,
+				Reason:    reason,
+			})
 		}
 	}
 	return res
+}
+
+// fold measures one version against every entry an advisory makes about the
+// component's package and returns the single verdict for the pair. An advisory
+// commonly splits one claim across several affected entries — one per branch,
+// per distribution, per range type — and stating each of them separately would
+// put two statements in the document for one claim, where a claim-by-claim
+// reader keeps only the last. The strongest verdict any entry reaches wins:
+// affected over unknown over not_affected, because an entry that places the
+// version inside a range is not weakened by a sibling entry that does not, and
+// a comparison that could not be made is not cleared by one that could.
+//
+// The reasons kept are those of the entries that reached the winning verdict:
+// "inside the range" and "outside every range" side by side read as a
+// contradiction rather than as an explanation.
+func fold(version string, a osv.Advisory, eco ecosystem, name string) (Status, string, bool) {
+	var (
+		stated  bool
+		status  Status
+		reasons []string
+	)
+	for _, aff := range a.Affected {
+		if !samePackage(aff.Package.Ecosystem, aff.Package.Name, eco, name) {
+			continue
+		}
+		s, reason := evaluate(version, aff, eco)
+		switch {
+		case !stated || rank(s) > rank(status):
+			stated, status, reasons = true, s, []string{reason}
+		case rank(s) == rank(status) && !slices.Contains(reasons, reason):
+			reasons = append(reasons, reason)
+		}
+	}
+	if !stated {
+		return "", "", false
+	}
+	return status, strings.Join(reasons, "; "), true
+}
+
+// rank orders verdicts by how much they ask of a person.
+func rank(s Status) int {
+	switch s {
+	case Affected:
+		return 2
+	case Unknown:
+		return 1
+	default:
+		return 0
+	}
 }
 
 // evaluate measures one version against one affected entry.
