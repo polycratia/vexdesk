@@ -24,11 +24,16 @@ const (
 
 // Advisory is one OSV record.
 type Advisory struct {
-	ID       string     `json:"id"`
-	Aliases  []string   `json:"aliases,omitempty"`
-	Summary  string     `json:"summary,omitempty"`
-	Modified string     `json:"modified,omitempty"`
-	Affected []Affected `json:"affected,omitempty"`
+	ID       string   `json:"id"`
+	Aliases  []string `json:"aliases,omitempty"`
+	Summary  string   `json:"summary,omitempty"`
+	Modified string   `json:"modified,omitempty"`
+	// Withdrawn carries the date a record was retracted after publication —
+	// wrong package, duplicate, mistaken report. The schema leaves the affected
+	// ranges in place, so such a record still matches a component; what it can
+	// no longer do is support a claim about it.
+	Withdrawn string     `json:"withdrawn,omitempty"`
+	Affected  []Affected `json:"affected,omitempty"`
 }
 
 // Affected is one "this package, these versions" claim inside an advisory.

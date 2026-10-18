@@ -179,14 +179,32 @@ func cmdMatch(args []string, out io.Writer) error {
 
 func printFindings(out io.Writer, res match.Result, shown []match.Finding) {
 	fmt.Fprintf(out, "%d component(s) compared against the advisory set\n\n", res.Checked)
-	if len(shown) == 0 {
+
+	// Retracted records get their own block below. In the table of verdicts a
+	// withdrawn record reads as one, and it is not one.
+	table := make([]match.Finding, 0, len(shown))
+	for _, f := range shown {
+		if f.Status != match.Withdrawn {
+			table = append(table, f)
+		}
+	}
+
+	if len(table) == 0 {
 		fmt.Fprintln(out, "Nothing needs attention.")
 	} else {
 		tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
 		fmt.Fprintln(tw, "STATUS\tADVISORY\tCOMPONENT\tVERSION\tREASON")
-		for _, f := range shown {
+		for _, f := range table {
 			fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n",
 				f.Status, f.Advisory, f.Component.Name, orDash(f.Component.Version), f.Reason)
+		}
+		tw.Flush()
+	}
+	if withdrawn := res.WithdrawnFindings(); len(withdrawn) > 0 {
+		fmt.Fprintf(out, "\nWithdrawn (%d):\n", len(withdrawn))
+		tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
+		for _, f := range withdrawn {
+			fmt.Fprintf(tw, "  %s\t%s\t%s\n", f.Advisory, f.Component.Name, f.Reason)
 		}
 		tw.Flush()
 	}

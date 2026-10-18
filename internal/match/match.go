@@ -28,6 +28,10 @@ const (
 	NotAffected Status = "not_affected"
 	// Unknown: the comparison could not be made. Needs a human.
 	Unknown Status = "unknown"
+	// Withdrawn: the advisory matched, but the record itself was retracted. The
+	// verdict its ranges reach is not reported, because the record carrying
+	// them no longer stands.
+	Withdrawn Status = "withdrawn"
 )
 
 // Finding is one component measured against one advisory. There is exactly one
@@ -57,11 +61,26 @@ type Result struct {
 	Checked int `json:"checked"`
 }
 
-// Attention returns the findings a person still has to deal with.
+// Attention returns the findings a person still has to deal with. A withdrawn
+// record is not among them, and so never reaches a VEX statement: a retracted
+// advisory asks nothing of anyone.
 func (r Result) Attention() []Finding {
 	var out []Finding
 	for _, f := range r.Findings {
-		if f.Status != NotAffected {
+		if f.Status != NotAffected && f.Status != Withdrawn {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+// WithdrawnFindings returns the findings whose advisory was retracted. They are
+// kept apart rather than dropped: a reader who saw the finding last week has to
+// learn that the record was withdrawn, not watch it vanish.
+func (r Result) WithdrawnFindings() []Finding {
+	var out []Finding
+	for _, f := range r.Findings {
+		if f.Status == Withdrawn {
 			out = append(out, f)
 		}
 	}
@@ -101,6 +120,12 @@ func Run(inv *inventory.Inventory, advisories []osv.Advisory) Result {
 			status, reason, stated := fold(version, a, eco, name)
 			if !stated {
 				continue
+			}
+			if a.Withdrawn != "" {
+				// The ranges matched, so the finding is made; the verdict they
+				// reached is replaced by the retraction, because the record
+				// carrying them was taken back on this date.
+				status, reason = Withdrawn, "advisory withdrawn on "+a.Withdrawn
 			}
 			res.Findings = append(res.Findings, Finding{
 				Component: c,
