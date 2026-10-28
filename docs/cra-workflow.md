@@ -69,13 +69,14 @@ $ vexdesk match -sbom dist/sbom-2.1.0.cyclonedx.json -advisories ./advisories
 
 This is the stage where the tool does all the judging it is entitled to do. It
 compares a component's version against the ranges an advisory gives, and each
-comparison ends in one of three places:
+comparison ends in one of four places:
 
 | Status | Meaning |
 |---|---|
 | `affected` | the version falls inside an affected range, or is on an explicit affected version list |
 | `not_affected` | the version is outside every range the advisory gives |
 | `unknown` | the comparison could not be made, with the reason attached |
+| `withdrawn` | the advisory named the component, but the record itself was retracted, with the date as the reason |
 
 `not_affected` here is a statement about version arithmetic and nothing else. It
 does not mean the vulnerable code is unreachable — only that this version is not
@@ -87,6 +88,16 @@ clear: a `GIT` range that cannot be compared against a version string, an
 string that is not a version. Components that could not be checked at all — no
 package URL, no version, a package URL type that maps to no advisory ecosystem —
 are listed separately under "not checked".
+
+`withdrawn` is the one status that asks nothing of anyone. An OSV record can be
+taken back after publication — wrong package, duplicate, mistaken report — and
+the schema records that with a date in `withdrawn` while leaving the affected
+ranges where they were. The ranges still match, so the finding is still made and
+printed in its own block below the table; what the record can no longer do is
+support a claim, so the finding is not counted as needing attention and never
+reaches the document. Keeping it visible is the point: a reader who saw that
+finding in the last report has to learn that the record was retracted rather
+than watch it disappear.
 
 `match` exits 1 when anything needs attention, so it can gate a pipeline; pass
 `-exit-zero` to print the report without stopping, and `-json` to hand the same
@@ -139,6 +150,10 @@ kept in version control next to the product it describes:
   nothing carries forward silently. Naming the exact version in a second,
   version-scoped decision takes the rule back for that version.
 
+A withdrawn advisory needs no decision. There is nothing to justify: the record
+that raised the question was taken back, and writing a decision against it would
+state a claim about a vulnerability nobody is claiming.
+
 Anything you have not decided is not a gap in the document — it comes out as
 `under_investigation`, which is the honest status for "we have seen it and have
 not finished looking".
@@ -160,7 +175,9 @@ What goes in:
 
 What does not go in: components that could not be checked at all. They have no
 package URL to state a claim about, so they never reach the document. They are
-in the `match` report, and clearing them is hand work.
+in the `match` report, and clearing them is hand work. Findings whose advisory
+was withdrawn stay out too — a retracted record supports no claim in either
+direction — and they are in the `match` report for the same reason.
 
 Writing is strict. The document refuses to build if the author is missing, if a
 `not_affected` statement has no justification code, if an `affected` statement
@@ -218,6 +235,7 @@ time you claimed it.
 | which advisories name those packages | whether an advisory that names the package describes your build |
 | whether a version falls inside an affected range | whether vulnerable code is reachable, and which justification code says so |
 | that a comparison could not be made, and why | how to resolve an `unknown` — read the advisory, pin a version, or state the judgement |
+| that an advisory record was withdrawn, and on what date | whether the retraction closes the question for your product |
 | that an undecided finding is `under_investigation` | when investigation ends, and what it concluded |
 | that a document breaks the OpenVEX rules | what the document claims |
 | what changed since the last released document | whether that change blocks the release |

@@ -59,6 +59,14 @@ Not checked (1):
   vendored-blob  no package URL: nothing to look up
 ```
 
+An advisory can also be taken back after publication — wrong package, duplicate,
+mistaken report — and the OSV schema says so with a date in `withdrawn` while
+leaving the affected ranges where they were. Such a record still names your
+component, so the finding is still made and printed in its own `Withdrawn`
+block, with the retraction date as the reason. It is not an affected claim and
+it never reaches the document; it also does not quietly disappear from a report
+where it stood last week.
+
 `match` exits 1 when anything needs attention, so it can gate a pipeline. Record
 what you concluded in a decisions file:
 
@@ -135,6 +143,10 @@ The same rule shapes version parsing. `2023-08-01` is not read as "major version
 2023"; it is refused, because a date that silently outranks every real version
 produces a confident wrong answer.
 
+A withdrawn advisory is the mirror image of the same rule: the record cannot
+support a claim, so it is not stated as one, and it cannot be unseen either, so
+it is reported as withdrawn rather than dropped.
+
 ## What the document says
 
 vexdesk enforces the OpenVEX rules rather than emitting whatever it is given:
@@ -160,7 +172,7 @@ built yet, and the tool says so rather than pretending otherwise.
 | | |
 |---|---|
 | SBOM formats | CycloneDX JSON 1.4–1.6 |
-| Advisories | OSV records from a directory tree |
+| Advisories | OSV records from a directory tree, including withdrawn ones |
 | Version ranges | `SEMVER`; `ECOSYSTEM` for Go, npm and crates.io; explicit version lists |
 | Ecosystems | Go, npm, crates.io, PyPI, Maven, RubyGems, NuGet, Packagist, Hex, Pub |
 | Output | OpenVEX v0.2.0, and a claim-by-claim diff of two of them |
