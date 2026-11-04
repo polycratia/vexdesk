@@ -1,0 +1,41 @@
+{
+  "title": "Fixture catalog of known exploited vulnerabilities",
+  "catalogVersion": "2026.09.01",
+  "dateReleased": "2026-09-01T12:00:00.0000Z",
+  "count": 3,
+  "vulnerabilities": [
+    {
+      "cveID": "CVE-FIXTURE-0001",
+      "vendorProject": "Example",
+      "product": "widget",
+      "vulnerabilityName": "Example widget input mishandling",
+      "dateAdded": "2026-05-04",
+      "shortDescription": "Fixture entry: listed under the alias of FIXTURE-0001.",
+      "requiredAction": "Apply updates per vendor instructions.",
+      "dueDate": "2026-05-25",
+      "knownRansomwareCampaignUse": "Known"
+    },
+    {
+      "cveID": "FIXTURE-0004",
+      "vendorProject": "Example",
+      "product": "cogwheel",
+      "vulnerabilityName": "Example cogwheel flaw",
+      "dateAdded": "2026-07-18",
+      "shortDescription": "Fixture entry: listed under the advisory's own id.",
+      "requiredAction": "Apply updates per vendor instructions.",
+      "dueDate": "2026-08-08",
+      "knownRansomwareCampaignUse": "Unknown"
+    },
+    {
+      "cveID": "CVE-FIXTURE-9999",
+      "vendorProject": "Elsewhere",
+      "product": "not-in-this-product",
+      "vulnerabilityName": "Fixture flaw in software this product does not ship",
+      "dateAdded": "2026-01-09",
+      "shortDescription": "Fixture entry: in the catalog, not in the inventory.",
+      "requiredAction": "Apply updates per vendor instructions.",
+      "dueDate": "2026-01-30",
+      "knownRansomwareCampaignUse": "Unknown"
+    }
+  ]
+}

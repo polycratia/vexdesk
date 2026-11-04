@@ -15,6 +15,7 @@ import (
 
 	"github.com/polycratia/vexdesk/internal/advisory/osv"
 	"github.com/polycratia/vexdesk/internal/inventory"
+	"github.com/polycratia/vexdesk/internal/kev"
 	"github.com/polycratia/vexdesk/internal/match"
 	"github.com/polycratia/vexdesk/internal/sbom/cyclonedx"
 	"github.com/polycratia/vexdesk/internal/vex"
@@ -28,9 +29,10 @@ Usage:
   vexdesk inventory <sbom.json> [-json]
         Read a CycloneDX SBOM and show what the product is made of.
 
-  vexdesk match -sbom <sbom.json> -advisories <dir> [-all] [-json]
-        Compare the inventory against OSV advisories. Exits 1 when anything
-        needs attention, so it can gate a pipeline.
+  vexdesk match -sbom <sbom.json> -advisories <dir> [-kev <file>] [-all] [-json]
+        Compare the inventory against OSV advisories. Findings a known-exploited
+        catalog lists are reported first, with the date it recorded. Exits 1 when
+        anything needs attention, so it can gate a pipeline.
 
   vexdesk vex -sbom <sbom.json> -advisories <dir> -author <name>
              [-decisions <file>] [-o <file>]
@@ -149,6 +151,7 @@ func cmdMatch(args []string, out io.Writer) error {
 	fs := flag.NewFlagSet("match", flag.ContinueOnError)
 	sbomPath := fs.String("sbom", "", "path to a CycloneDX SBOM")
 	advDir := fs.String("advisories", "", "directory of OSV advisories")
+	kevPath := fs.String("kev", "", "path to a catalog of known-exploited vulnerabilities")
 	all := fs.Bool("all", false, "also show findings ruled out by version")
 	asJSON := fs.Bool("json", false, "print findings as JSON")
 	exitZero := fs.Bool("exit-zero", false, "always exit 0, even when findings need attention")
@@ -158,6 +161,16 @@ func cmdMatch(args []string, out io.Writer) error {
 	res, err := analyse(*sbomPath, *advDir)
 	if err != nil {
 		return err
+	}
+	if *kevPath != "" {
+		// A catalog that cannot be read stops the command. Carrying on would
+		// leave every finding unlisted, which reads as "nothing here is known
+		// to be exploited" — a claim the file never made.
+		cat, err := kev.Load(*kevPath)
+		if err != nil {
+			return err
+		}
+		res.MarkExploited(cat)
 	}
 
 	shown := res.Attention()
@@ -187,6 +200,23 @@ func printFindings(out io.Writer, res match.Result, shown []match.Finding) {
 		if f.Status != match.Withdrawn {
 			table = append(table, f)
 		}
+	}
+
+	var exploited []match.Finding
+	for _, f := range table {
+		if f.Exploited != nil {
+			exploited = append(exploited, f)
+		}
+	}
+	if len(exploited) > 0 {
+		fmt.Fprintf(out, "Known exploited (%d):\n", len(exploited))
+		tw := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
+		for _, f := range exploited {
+			fmt.Fprintf(tw, "  %s\t%s\t%s\tadded %s\n",
+				f.Advisory, f.Component.Name, f.Exploited.Catalog, f.Exploited.DateAdded)
+		}
+		tw.Flush()
+		fmt.Fprintln(out)
 	}
 
 	if len(table) == 0 {

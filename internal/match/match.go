@@ -15,6 +15,7 @@ import (
 
 	"github.com/polycratia/vexdesk/internal/advisory/osv"
 	"github.com/polycratia/vexdesk/internal/inventory"
+	"github.com/polycratia/vexdesk/internal/kev"
 )
 
 // Status is what the version comparison concluded.
@@ -45,6 +46,11 @@ type Finding struct {
 	Summary   string              `json:"summary,omitempty"`
 	Status    Status              `json:"status"`
 	Reason    string              `json:"reason"`
+	// Exploited is set when a known-exploited catalog lists this advisory, by
+	// its own id or by one of its aliases. Nil means the catalog does not list
+	// it, or that no catalog was read at all — neither is a claim that
+	// exploitation has not happened.
+	Exploited *kev.Entry `json:"exploited,omitempty"`
 }
 
 // Skip is a component that could not be checked at all, with the reason why.

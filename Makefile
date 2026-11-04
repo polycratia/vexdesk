@@ -16,7 +16,8 @@ fmt:
 demo: build
 	./vexdesk inventory testdata/sbom.cyclonedx.json
 	@echo
-	-./vexdesk match -sbom testdata/sbom.cyclonedx.json -advisories testdata/advisories
+	-./vexdesk match -sbom testdata/sbom.cyclonedx.json -advisories testdata/advisories \
+		-kev testdata/kev/catalog.json
 	@echo
 	./vexdesk vex -sbom testdata/sbom.cyclonedx.json -advisories testdata/advisories \
 		-decisions testdata/decisions.json -author "vexdesk demo"
