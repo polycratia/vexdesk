@@ -67,6 +67,41 @@ block, with the retraction date as the reason. It is not an affected claim and
 it never reaches the document; it also does not quietly disappear from a report
 where it stood last week.
 
+## Exploited is a fact with a date
+
+That a vulnerability has been exploited is not a score to be inferred: it is
+something an authority wrote down, on a date, in a document. Hand that document
+to `match` and the findings it lists are reported first, with the date it
+recorded:
+
+```console
+$ vexdesk match -sbom sbom.cyclonedx.json -advisories ./advisories -kev kev.json
+4 component(s) compared against the advisory set
+
+Known exploited (2):
+  FIXTURE-0001  widget    CISA Catalog of Known Exploited Vulnerabilities  added 2026-05-04
+  FIXTURE-0004  cogwheel  CISA Catalog of Known Exploited Vulnerabilities  added 2026-07-18
+
+STATUS    ADVISORY      COMPONENT        VERSION  REASON
+affected  FIXTURE-0001  widget           1.2.3    version falls inside the advisory's affected range
+affected  FIXTURE-0004  cogwheel         4.0.0    version is in the advisory's affected version list
+unknown   FIXTURE-0003  Example_Fixture  3.1.2    ECOSYSTEM range for PyPI needs that ecosystem's own version ordering, which is not implemented
+
+Not checked (1):
+  vendored-blob  no package URL: nothing to look up
+```
+
+A listing is found by the advisory's own id or by any of its aliases — catalogs
+index by CVE and advisory feeds often do not — and the catalog's name together
+with its `dateAdded` travels into `-json` as `exploited` on the finding. The
+verdict itself is untouched: exploitation is a fact about the world, not a
+conclusion about your product, so it orders the work rather than deciding it.
+
+A catalog that cannot be read stops the command instead of leaving every finding
+unlisted, which would read as "nothing here is known to be exploited" — a claim
+the file never made. With no `-kev` at all nothing is listed and nothing is
+inferred from that: "not in the catalog" is never read as "not exploited".
+
 `match` exits 1 when anything needs attention, so it can gate a pipeline. Record
 what you concluded in a decisions file:
 
@@ -162,7 +197,7 @@ vexdesk enforces the OpenVEX rules rather than emitting whatever it is given:
 - `affected` requires an action statement: what should the user do;
 - the document id is derived from the statements, so an unchanged set of
   decisions rebuilds to the same id instead of looking newly issued on every
-  CI run.
+  run.
 
 ## Status
 
@@ -175,8 +210,9 @@ built yet, and the tool says so rather than pretending otherwise.
 | Advisories | OSV records from a directory tree, including withdrawn ones |
 | Version ranges | `SEMVER`; `ECOSYSTEM` for Go, npm and crates.io; explicit version lists |
 | Ecosystems | Go, npm, crates.io, PyPI, Maven, RubyGems, NuGet, Packagist, Hex, Pub |
+| Known exploited | a catalog read from disk, in the shape CISA publishes |
 | Output | OpenVEX v0.2.0, and a claim-by-claim diff of two of them |
-| Not yet | SPDX input, CSAF output, reachability analysis, KEV/EPSS feeds, the reporting clock |
+| Not yet | SPDX input, CSAF output, reachability analysis, EPSS scores, the reporting clock |
 
 ## Development
 
